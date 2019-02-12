@@ -1,0 +1,76 @@
+//
+
+Beta Version
+
+//
+General keys:
+m -> switch mode (sorting algorithms / path finding algorithms)
+, -> increase width
+. -> increase height
+- -> decrease width
+º -> decrease height
+* -> increase speed
+/ -> decrease speed
+
+Sorting Algorithms Keys:
+List of Algorithms available for use and keys to activate
+-Bitonic Sort (key = 0)
+-Bogo Sort (key = 1, not recommended, EPILEPSIA WARNING!, basically infinite)
+-Bubble Sort (key = 2)
+-Cocktail Shaker Sort (key = 3)
+-Comb Sort (key = 4)
+-Counting Sort (key = 5)
+-Cycle Sort (key = 6)
+-Flash Sort (key = 7)
+-Gnome Sort (key = 8)
+-Gravity Sort (key = 9)
+-Heap Sort (key = q)
+-Insertion Sort (key = w)
+-Merge Sort (key = e)
+-Pancake Sort (key = r), EPILEPSIA WARNING!
+-Quick Sort (key = t)
+-Selection Sort (key = y)
+-Shell Sort (key = u)
+-Radix LSD Sort (key = i)
+-Double Selection Sort (key = o)
+-Stooge Sort (key = p) Good luck
+-Sleep Sort (key = a)
+-Slow Sort (key = s) Good luck
+-Pigeonhole Sort (key = d)
+-Circle Sort (key = f)
+-Radix LSD Sort In-Place (key = g)
+
+NOTE: Counters aren't 100% accurate
+
+Extra keys:
+
+z -> change view (classic, circle, hoops)
+x -> change view (dotted)
+c -> enable/disable linked dots
+v -> enable/diable disparity
+b -> enable/disable shuffle animation 
+n -> change color mode
++ -> increase elements of array
+« -> decrease elements of array
+
+Mouse.RIGHT CLICK -> Shuffle
+
+Path Finding Algorithms Keys:
+
+Mouse.RIGHT CLICK -> create wall
+Mouse.RIGHT CLICK -> destroy wall
+SHIFT + Mouse.RIGHT CLICK -> create starting point
+SHIFT + Mouse.RIGHT CLICK -> destroy starting point
+CTRL + Mouse.RIGHT CLICK -> create goal point
+CTRL + Mouse.RIGHT CLICK -> destroy goal point
+
+Note: The mouse can be dragged to build walls easier
+
+List of Algorithms available for use and keys to activate
+-A* (key = r)
+
+Extra Keys:
+c -> clear grid
++ -> increase resolution
+« -> decrease resolution
+
