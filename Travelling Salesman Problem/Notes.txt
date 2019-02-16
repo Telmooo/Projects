@@ -1,0 +1,12 @@
+This visualisation is not optimized, so the performance is lacking.
+The more locations added the heavier it is to render.
+
+Instructions to use:
+Adding locations:
+Open the "Locations" file located in data and add or remove locations according to this format
+{location_name},{latitude_degrees},{longitude_degrees}
+
+Running program:
+Key:'r' -> run the algorithm
+    '+' -> increase speed
+    '-' -> decrease speed
