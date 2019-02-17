@@ -7,6 +7,6 @@ Open the "Locations" file located in data and add or remove locations according 
 {location_name},{latitude_degrees},{longitude_degrees}
 
 Running program:
-Key:'r' -> run the algorithm
+Key:'r' -> activate/deactive algorithm
     '+' -> increase speed
     '-' -> decrease speed
