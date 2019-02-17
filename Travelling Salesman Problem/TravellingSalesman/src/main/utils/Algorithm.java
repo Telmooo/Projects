@@ -3,6 +3,7 @@ package main.utils;
 import java.util.ArrayList;
 
 import main.Main;
+import processing.data.IntList;
 
 /**
  * 
@@ -14,49 +15,137 @@ public class Algorithm extends Main {
 
 	/**
 	 * 
-	 * @param points
 	 */
-	public static void finder(final ArrayList<Coordinate> points) {
-
-		if (points.size() <= 1)
-			return;
-
-		currentPath.clear();
-		bestPath.clear();
-		ArrayList<Coordinate> toVisit = new ArrayList<Coordinate>();
-
-		for (Coordinate coord : points)
-			toVisit.add(coord.clone());
-
-		Coordinate pivot = points.get((int) (Math.random() * points.size())).clone();
-		currentPath.add(pivot);
-		currentPath.add(null);
-		bestPath.add(pivot);
-		toVisit.remove(pivot);
-		int index = 1;
-		Coordinate min = null;
-		double minDist = Double.POSITIVE_INFINITY, aux;
-		while (!toVisit.isEmpty()) {
-			currentPath.set(1, min);
-			bestPath.add(min);
-			for (Coordinate coord : toVisit) {
-				currentPath.set(1, coord);
-				if ((aux = coord.distance(pivot)) < minDist || min == null) {
-					minDist = aux;
-					min = coord;
-					bestPath.set(index, min);
-				}
-				sleep(10);
+	public static void calculateFitness() {
+		double temp = Double.POSITIVE_INFINITY;
+		for (int i = 0; i < population.length; i++) {
+			double dist = getDistance(points, population[i]);
+			if (dist < recordDist) {
+				recordDist = dist;
+				bestPath = population[i];
 			}
-
-			pivot = min;
-			toVisit.remove(pivot);
-			currentPath.set(0, pivot);
-			minDist = Double.POSITIVE_INFINITY;
-			min = null;
-			index++;
-			sleep(10);
+			if (dist < temp) {
+				temp = dist;
+				currentPath = population[i];
+			}
+			
+			fitness[i] = 1.0 / (Math.pow(dist, 8) + 1);
+			try {
+				Thread.sleep(sleepTime);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
-		currentPath.clear();
+	}
+
+	/**
+	 * 
+	 * @param points
+	 * @param order
+	 * @return
+	 */
+	private static double getDistance(ArrayList<Coordinate> points, IntList order) {
+		double dist = 0;
+		for (int i = 0; i < order.size() - 1; i++) {
+			int indexA = order.get(i);
+			Coordinate pointA = points.get(indexA);
+			int indexB = order.get(i + 1);
+			Coordinate pointB = points.get(indexB);
+			dist += pointA.distance(pointB);
+		}
+		return dist;
+	}
+	
+	/**
+	 * 
+	 */
+	public static void normalizeFitness() {
+		double sum = 0;
+		for (int i = 0; i < fitness.length; i++) {
+			sum += fitness[i];
+		}
+		for (int i = 0; i < fitness.length; i++) {
+			fitness[i] /= sum;
+		}
+	}
+	
+	/**
+	 * 
+	 */
+	public static void nextGen() {
+		IntList[] newPopulation = new IntList[populationSize];
+		for (int i = 0; i < population.length; i++) {
+			IntList parentA = choose(population, fitness);
+			IntList parentB = choose(population, fitness);
+			IntList child = crossover(parentA, parentB);
+			mutate(child);
+			newPopulation[i] = child;
+		}
+		population = newPopulation;
+		gen++;
+	}
+	
+	/**
+	 * 
+	 * @param population
+	 * @param prob
+	 * @return
+	 */
+	private static IntList choose(IntList[] population, double[] prob) {
+		int index = 0;
+		double random = Math.random();
+		
+		while (random > 0) {
+			random -= prob[index];
+			index++;
+		}
+		index--;
+		return population[index].copy();
+	}
+	/**
+	 * 
+	 * @param parentA
+	 * @param parentB
+	 * @return
+	 */
+	private static IntList crossover(IntList parentA, IntList parentB) {
+		int start = (int) (Math.random() * parentA.size());
+		int end = (int) (start + 1 + Math.random() * (parentA.size() - start - 1));
+		IntList child = new IntList();
+		for (int i = start; i < end; i++) {
+			child.append(parentA.get(i));
+		}
+		int point;
+		for (int i = 0; i < parentB.size(); i++) {
+			if (!child.hasValue((point = parentB.get(i))))
+					child.append(point);
+		}
+		return child;
+	}
+	
+	/**
+	 * 
+	 * @param population
+	 */
+	private static void mutate(IntList population) {
+		for (int i = 0; i < points.size(); i++) {
+			if (Math.random() < mutationRate) {
+				int indexA = (int) (Math.random() * population.size());
+				int indexB = (int) (Math.random() * population.size());
+				swap(population, indexA, indexB);
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param population
+	 * @param i
+	 * @param j
+	 */
+	private static void swap(IntList population, int i, int j) {
+		int temp = population.get(i);
+		population.set(i, population.get(j));
+		population.set(j, temp);
 	}
 }

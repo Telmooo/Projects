@@ -1,6 +1,8 @@
 package main;
 
-import static main.utils.Algorithm.finder;
+import static main.utils.Algorithm.calculateFitness;
+import static main.utils.Algorithm.normalizeFitness;
+import static main.utils.Algorithm.nextGen;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -12,6 +14,7 @@ import peasy.PeasyCam;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PShape;
+import processing.data.IntList;
 
 /**
  * 
@@ -30,13 +33,18 @@ public class Main extends PApplet {
 	/**
 	 * 
 	 */
-	PeasyCam camera;
-
+	public static int populationSize = 500;
+	public static double[] fitness;
+	public static IntList[] population;
+	public static double recordDist = Double.POSITIVE_INFINITY;
+	public static double mutationRate = 0.1;
+	public static int gen = 0;
+	public static IntList currentPath;
+	public static IntList bestPath;
 	/**
 	 * 
 	 */
-	public static ArrayList<Coordinate> currentPath;
-	public static ArrayList<Coordinate> bestPath;
+	PeasyCam camera;
 
 	/**
 	 * 
@@ -46,9 +54,9 @@ public class Main extends PApplet {
 	/**
 	 * 
 	 */
-	private static double sleepRatio = 1.0;
-	private static double controlTime = 0;
+	protected static long sleepTime = 1;
 	private static boolean running = false;
+	private static boolean initialized = false;
 
 	/**
 	 * 
@@ -61,8 +69,8 @@ public class Main extends PApplet {
 	/**
 	 * 
 	 */
-	static ArrayList<String[]> locations;
-	static ArrayList<Coordinate> points;
+	protected static ArrayList<String[]> locations;
+	protected static ArrayList<Coordinate> points;
 
 	/**
 	 * 
@@ -89,8 +97,8 @@ public class Main extends PApplet {
 		globe = createShape(SPHERE, (float) radius);
 		globe.setTexture(earth);
 
-		bestPath = new ArrayList<Coordinate>();
-		currentPath = new ArrayList<Coordinate>();
+		population = new IntList[populationSize];
+		fitness = new double[populationSize];
 
 		locations = new ArrayList<String[]>();
 		points = new ArrayList<Coordinate>();
@@ -119,6 +127,15 @@ public class Main extends PApplet {
 				continue;
 			}
 		}
+		IntList order = new IntList();
+		for (int i = 0; i < points.size(); i++) {
+			order.append(i);
+		}
+		IntList orderCopy = order.copy();
+		for (int i = 0; i < populationSize; i++) {
+			orderCopy.shuffle();
+			population[i] = orderCopy;
+		}
 	}
 
 	/**
@@ -127,7 +144,6 @@ public class Main extends PApplet {
 	public void draw() {
 		background(0);
 		translate(WIDTH / 2, HEIGHT / 2);
-		rotation += 0.01;
 
 		lights();
 		shape(globe);
@@ -144,32 +160,28 @@ public class Main extends PApplet {
 			pop();
 		}
 
-		if (bestPath.size() > 1) {
+		if (currentPath != null && currentPath.size() > 1) {
 			push();
 			noFill();
 			strokeWeight(3);
+			stroke(255, 0, 0);
 			Vector prev = null;
-			for (int i = 1; i < bestPath.size(); i++) {
-				if (bestPath.get(i) == null)
-					break;
+			for (int i = 1; i < currentPath.size(); i++) {
 				if (prev == null) {
-					double prevX = projX(radius, bestPath.get(i - 1).lon, bestPath.get(i - 1).lat);
-					double prevY = projY(radius, bestPath.get(i - 1).lat);
-					double prevZ = projZ(radius, bestPath.get(i - 1).lon, bestPath.get(i - 1).lat);
+					int prevIndex = currentPath.get(i - 1);
+					double prevX = projX(radius, points.get(prevIndex).lon, points.get(prevIndex).lat);
+					double prevY = projY(radius, points.get(prevIndex).lat);
+					double prevZ = projZ(radius, points.get(prevIndex).lon, points.get(prevIndex).lat);
 					prev = new Vector(prevX, prevY, prevZ);
 				}
-				double x = projX(radius, bestPath.get(i).lon, bestPath.get(i).lat);
-				double y = projY(radius, bestPath.get(i).lat);
-				double z = projZ(radius, bestPath.get(i).lon, bestPath.get(i).lat);
+				int index = currentPath.get(i);
+				double x = projX(radius, points.get(index).lon, points.get(index).lat);
+				double y = projY(radius, points.get(index).lat);
+				double z = projZ(radius, points.get(index).lon, points.get(index).lat);
 				Vector pos = new Vector(x, y, z);
 				ArrayList<Vector> arc = createArc(prev, pos, 7);
 				beginShape();
 				for (int p = 0; p < arc.size(); p++) {
-					if (p >= arc.size() - 3) {
-						stroke(0, 0, 255);
-					} else {
-						stroke(0, 255, 0);
-					}
 					curveVertex((float) arc.get(p).x, (float) arc.get(p).y, (float) (float) arc.get(p).z);
 				}
 				endShape();
@@ -179,55 +191,122 @@ public class Main extends PApplet {
 			pop();
 		}
 
-		if (currentPath.size() == 2) {
-			if (currentPath.get(1) != null && currentPath.get(0) != null) {
-				push();
-				noFill();
-				strokeWeight(3);
-				stroke(255, 0, 0);
-				double a = projX(radius, currentPath.get(0).lon, currentPath.get(0).lat);
-				double b = projY(radius, currentPath.get(0).lat);
-				double c = projZ(radius, currentPath.get(0).lon, currentPath.get(0).lat);
-				Vector pivot = new Vector(a, b, c);
-				double x = projX(radius, currentPath.get(1).lon, currentPath.get(1).lat);
-				double y = projY(radius, currentPath.get(1).lat);
-				double z = projZ(radius, currentPath.get(1).lon, currentPath.get(1).lat);
+		if (bestPath != null && bestPath.size() > 1) {
+			push();
+			noFill();
+			strokeWeight(3);
+			stroke(0, 255, 0);
+			Vector prev = null;
+			for (int i = 1; i < bestPath.size(); i++) {
+				if (prev == null) {
+					int prevIndex = bestPath.get(i - 1);
+					double prevX = projX(radius, points.get(prevIndex).lon, points.get(prevIndex).lat);
+					double prevY = projY(radius, points.get(prevIndex).lat);
+					double prevZ = projZ(radius, points.get(prevIndex).lon, points.get(prevIndex).lat);
+					prev = new Vector(prevX, prevY, prevZ);
+				}
+				int index = bestPath.get(i);
+				double x = projX(radius, points.get(index).lon, points.get(index).lat);
+				double y = projY(radius, points.get(index).lat);
+				double z = projZ(radius, points.get(index).lon, points.get(index).lat);
 				Vector pos = new Vector(x, y, z);
-				ArrayList<Vector> arc = createArc(pivot, pos, 7);
+				ArrayList<Vector> arc = createArc(prev, pos, 7);
 				beginShape();
-				for (Vector v : arc) {
-					curveVertex((float) v.x, (float) v.y, (float) v.z);
+				for (int p = 0; p < arc.size(); p++) {
+					curveVertex((float) arc.get(p).x, (float) arc.get(p).y, (float) (float) arc.get(p).z);
 				}
 				endShape();
-				pop();
+
+				prev.set(x, y, z);
 			}
+			pop();
 		}
+		push();
+		translate(0, 0, 0);
+		stroke(255);
+		fill(255);
+		textSize(50);
+		showGen();
+		pop();
+	}
+
+	/**
+	 * 
+	 */
+	void showGen() {
+		camera();
+		hint(DISABLE_DEPTH_TEST);
+		noLights();
+		textMode(MODEL);
+		text("Generation: " + formatNum(gen), 20, 50);
+		hint(ENABLE_DEPTH_TEST);
+	}
+
+	/**
+	 * 
+	 * @param n
+	 * @return
+	 */
+	public static String formatNum(long n) {
+		if (n < 0)
+			return "OVERFLOW";
+		if (n < 1e3)
+			return n + "";
+		if (n < 1e6)
+			return String.format("%.2fK", n * 1e-3);
+		if (n < 1e9)
+			return String.format("%.2fM", n * 1e-6);
+		if (n < 1e12)
+			return String.format("%.2fG", n * 1e-9);
+		if (n < 1e15)
+			return String.format("%.2fT", n * 1e-12);
+		if (n < 1e18)
+			return String.format("%.2fP", n * 1e-15);
+		if (n < 1e21)
+			return String.format("%.2fE", n * 1e-18);
+		if (n < 1e24)
+			return String.format("%.2fZ", n * 1e-21);
+		if (n < 1e27)
+			return String.format("%.2fY", n * 1e-24);
+
+		return String.format("%.2fX", n * 1e-27);
+	}
+
+	/**
+	 * 
+	 */
+	public void initialize() {
+		new Thread() {
+			@Override
+			public void run() {
+				while (running) {
+					calculateFitness();
+					normalizeFitness();
+					nextGen();
+				}
+			};
+		}.start();
 	}
 
 	/**
 	 * 
 	 */
 	public void keyPressed() {
-		if (!running) {
-			switch (key) {
-			case 'r':
-			case 'R':
-				new Thread() {
-					@Override
-					public void run() {
-						running = true;
-						finder(points);
-						running = false;
-					};
-				}.start();
-				break;
-			case '+':
-				speed(0.1);
-				break;
-			case '-':
-				speed(-0.1);
-				break;
+		switch (key) {
+		case 'r':
+		case 'R':
+			if (!initialized) {
+				initialize();
 			}
+			initialized ^= true;
+			running ^= true;
+			break;
+		case '+':
+			speed(-1);
+			break;
+		case '-':
+			speed(1);
+			break;
 		}
 	}
 
@@ -235,10 +314,8 @@ public class Main extends PApplet {
 	 * 
 	 * @param amount
 	 */
-	public void speed(double amount) {
-		sleepRatio += amount;
-		if (sleepRatio <= 0)
-			sleepRatio = 0.1;
+	public void speed(int amount) {
+		sleepTime = Math.max(0, sleepTime + amount);
 	}
 
 	/**
@@ -316,31 +393,5 @@ public class Main extends PApplet {
 	 */
 	public static double projZ(final double radius, final double lon, final double lat) {
 		return radius * Math.cos(lat) * Math.sin(lon);
-	}
-
-	/**
-	 * 
-	 * @param millis
-	 */
-	public static void sleep(double millis) {
-
-		if (millis <= 0)
-			return;
-
-		long elapsedTime = System.nanoTime();
-
-		double sleepAmount = millis * points.size() / sleepRatio;
-		controlTime += sleepAmount;
-
-		if (controlTime <= 1.0)
-			return;
-
-		try {
-			Thread.sleep((long) sleepAmount);
-			elapsedTime = System.nanoTime() - elapsedTime;
-			controlTime -= (double) elapsedTime * 1e-6;
-		} catch (Exception e) {
-			System.err.println("Error: " + e.getMessage());
-		}
 	}
 }
