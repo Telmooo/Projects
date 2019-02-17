@@ -1,8 +1,6 @@
 package main;
 
-import static main.utils.Algorithm.calculateFitness;
-import static main.utils.Algorithm.normalizeFitness;
-import static main.utils.Algorithm.nextGen;
+import static main.utils.Algorithm.runIt;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -280,9 +278,7 @@ public class Main extends PApplet {
 			@Override
 			public void run() {
 				while (running) {
-					calculateFitness();
-					normalizeFitness();
-					nextGen();
+					runIt();
 				}
 			};
 		}.start();

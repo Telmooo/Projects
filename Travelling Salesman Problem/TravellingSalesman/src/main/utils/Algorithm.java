@@ -16,6 +16,14 @@ public class Algorithm extends Main {
 	/**
 	 * 
 	 */
+	public static void runIt() {
+		calculateFitness();
+		nextGen();
+	}
+
+	/**
+	 * 
+	 */
 	public static void calculateFitness() {
 		double temp = Double.POSITIVE_INFINITY;
 		for (int i = 0; i < population.length; i++) {
@@ -28,7 +36,7 @@ public class Algorithm extends Main {
 				temp = dist;
 				currentPath = population[i];
 			}
-			
+
 			fitness[i] = 1.0 / (Math.pow(dist, 8) + 1);
 			try {
 				Thread.sleep(sleepTime);
@@ -36,6 +44,7 @@ public class Algorithm extends Main {
 				e.printStackTrace();
 			}
 		}
+		normalize();
 	}
 
 	/**
@@ -55,11 +64,11 @@ public class Algorithm extends Main {
 		}
 		return dist;
 	}
-	
+
 	/**
 	 * 
 	 */
-	public static void normalizeFitness() {
+	public static void normalize() {
 		double sum = 0;
 		for (int i = 0; i < fitness.length; i++) {
 			sum += fitness[i];
@@ -68,15 +77,15 @@ public class Algorithm extends Main {
 			fitness[i] /= sum;
 		}
 	}
-	
+
 	/**
 	 * 
 	 */
 	public static void nextGen() {
 		IntList[] newPopulation = new IntList[populationSize];
 		for (int i = 0; i < population.length; i++) {
-			IntList parentA = choose(population, fitness);
-			IntList parentB = choose(population, fitness);
+			IntList parentA = getParent(population, fitness);
+			IntList parentB = getParent(population, fitness);
 			IntList child = crossover(parentA, parentB);
 			mutate(child);
 			newPopulation[i] = child;
@@ -84,17 +93,17 @@ public class Algorithm extends Main {
 		population = newPopulation;
 		gen++;
 	}
-	
+
 	/**
 	 * 
 	 * @param population
 	 * @param prob
 	 * @return
 	 */
-	private static IntList choose(IntList[] population, double[] prob) {
+	private static IntList getParent(IntList[] population, double[] prob) {
 		int index = 0;
 		double random = Math.random();
-		
+
 		while (random > 0) {
 			random -= prob[index];
 			index++;
@@ -102,6 +111,7 @@ public class Algorithm extends Main {
 		index--;
 		return population[index].copy();
 	}
+
 	/**
 	 * 
 	 * @param parentA
@@ -118,11 +128,11 @@ public class Algorithm extends Main {
 		int point;
 		for (int i = 0; i < parentB.size(); i++) {
 			if (!child.hasValue((point = parentB.get(i))))
-					child.append(point);
+				child.append(point);
 		}
 		return child;
 	}
-	
+
 	/**
 	 * 
 	 * @param population
@@ -136,7 +146,7 @@ public class Algorithm extends Main {
 			}
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param population
